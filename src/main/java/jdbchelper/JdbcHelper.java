@@ -237,10 +237,10 @@ public class JdbcHelper {
       transaction.hold--;
 
       if (transaction.hold == 0) {
-
          if (!transaction.autoCommit) {
             try {
                transaction.connection.commit();
+               transaction.connection.setAutoCommit(true);
             } catch (SQLException e) {
                if (logger != null) {
                   logger.log(e);
@@ -269,6 +269,7 @@ public class JdbcHelper {
       } else {
          try {
             transaction.connection.commit();
+            transaction.connection.setAutoCommit(true);
          } catch (SQLException e) {
             if (logger != null) {
                logger.log(e);
@@ -294,6 +295,7 @@ public class JdbcHelper {
       } else {
          try {
             transaction.connection.rollback();
+            transaction.connection.setAutoCommit(true);
          } catch (SQLException e) {
             if (logger != null) {
                logger.log(e);
@@ -336,6 +338,7 @@ public class JdbcHelper {
       Connection con = null;
       Statement stmt = null;
       ResultSet result = null;
+      boolean rollBack = false;
 
       try {
          con = getConnection();
@@ -390,10 +393,20 @@ public class JdbcHelper {
          if (logger != null) {
              logger.log(e, sql);
          }
+
+         rollBack = isInTransaction();
+
          throw new JdbcException("Error running query:\n" + sql + "\n\nError: " + e.getMessage(), e);
       } finally {
          JdbcUtil.close(stmt, result);
-         freeConnection(con);
+         if (rollBack)
+         {
+             rollbackTransaction();
+         }
+         else
+         {
+             freeConnection(con);
+         }
       }
       return null;
    }
@@ -402,6 +415,7 @@ public class JdbcHelper {
       Connection con = null;
       Statement stmt = null;
       ResultSet result = null;
+      boolean rollBack = false;
 
       try {
          con = getConnection();
@@ -457,10 +471,19 @@ public class JdbcHelper {
          if (logger != null) {
              logger.log(e, sql);
          }
+
+         rollBack = isInTransaction();
          throw new JdbcException("Error running query:\n" + sql + "\n\nError: " + e.getMessage(), e);
       } finally {
          JdbcUtil.close(stmt, result);
-         freeConnection(con);
+         if (rollBack)
+         {
+             rollbackTransaction();
+         }
+         else
+         {
+             freeConnection(con);
+         }
       }
       return null;
    }
@@ -1813,6 +1836,7 @@ public class JdbcHelper {
    public int execute(String sql, Object... params) {
       Connection con = null;
       Statement stmt = null;
+      boolean rollBack = false;
 
       try {
          con = getConnection();
@@ -1828,10 +1852,20 @@ public class JdbcHelper {
          if (logger != null) {
              logger.log(e, sql);
          }
+
+         rollBack = isInTransaction();
+
          throw new JdbcException("Error executing query:\n" + sql + "\n\nError: " + e.getMessage(), e);
       } finally {
          JdbcUtil.close(stmt);
-         freeConnection(con);
+         if (rollBack)
+         {
+             rollbackTransaction();
+         }
+         else
+         {
+             freeConnection(con);
+         }
       }
    }
 
@@ -1858,6 +1892,7 @@ public class JdbcHelper {
    public int executeOnCatalog(String cataLogName, String sql, Object... params) {
       Connection con = null;
       Statement stmt = null;
+      boolean rollBack = false;
 
       try {
          con = getConnection();
@@ -1879,10 +1914,19 @@ public class JdbcHelper {
          if (logger != null) {
              logger.log(e, sql);
          }
+
+         rollBack = isInTransaction();
          throw new JdbcException("Error executing query:\n" + sql + "\n\nError: " + e.getMessage(), e);
       } finally {
          JdbcUtil.close(stmt);
-         freeConnection(con);
+         if (rollBack)
+         {
+             rollbackTransaction();
+         }
+         else
+         {
+             freeConnection(con);
+         }
       }
    }
 
@@ -1924,6 +1968,7 @@ public class JdbcHelper {
    public <T> int execute(String sql, T bean, StatementMapper<T> mapper) {
       Connection con = null;
       PreparedStatement stmt = null;
+      boolean rollBack = false;
 
       try {
          con = getConnection();
@@ -1934,10 +1979,20 @@ public class JdbcHelper {
          if (logger != null) {
              logger.log(e, sql);
          }
+
+         rollBack = isInTransaction();
          throw new JdbcException("Error executing query:\n" + sql + "\n\nError: " + e.getMessage(), e);
       } finally {
          JdbcUtil.close(stmt);
-         freeConnection(con);
+
+         if (rollBack)
+         {
+             rollbackTransaction();
+         }
+         else
+         {
+             freeConnection(con);
+         }
       }
    }
 
@@ -1951,6 +2006,7 @@ public class JdbcHelper {
    public int execute(String sql, StatementPopulator populator) {
       Connection con = null;
       PreparedStatement stmt = null;
+      boolean rollBack = false;
 
       try {
          con = getConnection();
@@ -1961,10 +2017,18 @@ public class JdbcHelper {
          if (logger != null) {
              logger.log(e, sql);
          }
+         rollBack = isInTransaction();
          throw new JdbcException("Error executing query:\n" + sql + "\n\nError: " + e.getMessage(), e);
       } finally {
          JdbcUtil.close(stmt);
-         freeConnection(con);
+         if (rollBack)
+         {
+             rollbackTransaction();
+         }
+         else
+         {
+             freeConnection(con);
+         }
       }
    }
 
@@ -1983,6 +2047,7 @@ public class JdbcHelper {
    public <T> int executeOnCatalog(String cataLogName, String sql, T bean, StatementMapper<T> mapper) {
       Connection con = null;
       PreparedStatement stmt = null;
+      boolean rollBack = false;
 
       try {
          con = getConnection();
@@ -1997,10 +2062,19 @@ public class JdbcHelper {
          if (logger != null) {
              logger.log(e, sql);
          }
+
+         rollBack = isInTransaction();
          throw new JdbcException("Error executing query:\n" + sql + "\n\nError: " + e.getMessage(), e);
       } finally {
          JdbcUtil.close(stmt);
-         freeConnection(con);
+         if (rollBack)
+         {
+             rollbackTransaction();
+         }
+         else
+         {
+             freeConnection(con);
+         }
       }
    }
 
@@ -2012,6 +2086,7 @@ public class JdbcHelper {
    public void run(String sql, Object... params) {
       Connection con = null;
       Statement stmt = null;
+      boolean rollBack = false;
 
       try {
          con = getConnection();
@@ -2027,10 +2102,18 @@ public class JdbcHelper {
          if (logger != null) {
              logger.log(e, sql);
          }
+         rollBack = isInTransaction();
          throw new JdbcException("Error executing query:\n" + sql + "\n\nError: " + e.getMessage(), e);
       } finally {
          JdbcUtil.close(stmt);
-         freeConnection(con);
+         if (rollBack)
+         {
+             rollbackTransaction();
+         }
+         else
+         {
+             freeConnection(con);
+         }
       }
    }
 
@@ -2071,6 +2154,7 @@ public class JdbcHelper {
    public int[] executeBatch(String sql, BatchFeeder feeder) {
       Connection con = null;
       PreparedStatement stmt = null;
+      boolean rollBack = false;
 
       try {
          con = getConnection();
@@ -2087,10 +2171,18 @@ public class JdbcHelper {
          if (logger != null) {
              logger.log(e, sql);
          }
+         rollBack = isInTransaction();
          throw new JdbcException("Error executing query:\n" + sql + "\n\nError: " + e.getMessage(), e);
       } finally {
          JdbcUtil.close(stmt);
-         freeConnection(con);
+         if (rollBack)
+         {
+             rollbackTransaction();
+         }
+         else
+         {
+             freeConnection(con);
+         }
       }
    }
 }
